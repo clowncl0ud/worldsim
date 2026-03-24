@@ -1,4 +1,6 @@
-// Canvas setup
+// =========================
+// Canvas Setup
+// =========================
 const canvas = document.getElementById("world");
 const ctx = canvas.getContext("2d");
 
@@ -9,7 +11,9 @@ function resize() {
 window.addEventListener("resize", resize);
 resize();
 
-// World settings
+// =========================
+// World Settings
+// =========================
 const TILE_SIZE = 16;
 const WORLD_W = 200;
 const WORLD_H = 200;
@@ -21,7 +25,9 @@ let zoom = 2;
 // Brush
 const brush = document.getElementById("brush");
 
+// =========================
 // Tools
+// =========================
 let currentTool = "grass";
 document.querySelectorAll(".tool").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -32,12 +38,21 @@ document.querySelectorAll(".tool").forEach(btn => {
 });
 document.querySelector(".tool").classList.add("selected");
 
-// Pixel-art sprites (Base64)
+// =========================
+// Pixel Art Sprites (Base64 placeholders)
+// Replace with real sprites later if you want
+// =========================
+function loadSprite(src) {
+  const img = new Image();
+  img.src = src;
+  return img;
+}
+
 const tileSprites = {
-  grass: loadSprite("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQ..."), 
-  sand: loadSprite("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQ..."),
-  water: loadSprite("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQ..."),
-  mountain: loadSprite("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQ...")
+  grass: loadSprite("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAA..."),
+  sand: loadSprite("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAA..."),
+  water: loadSprite("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAA..."),
+  mountain: loadSprite("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAOCAYAAAAfSC3RAAAA...")
 };
 
 const creatureSprites = {
@@ -45,13 +60,9 @@ const creatureSprites = {
   animal: loadSprite("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICA...")
 };
 
-function loadSprite(src) {
-  const img = new Image();
-  img.src = src;
-  return img;
-}
-
-// World grid
+// =========================
+// World Grid (FULL OCEAN START)
+// =========================
 const world = [];
 for (let y = 0; y < WORLD_H; y++) {
   const row = [];
@@ -59,13 +70,45 @@ for (let y = 0; y < WORLD_H; y++) {
     row.push({
       terrain: "water",
       creatures: [],
-      structure: null
+      structure: null,
+      cityLevel: 0,
+      faction: null
     });
   }
   world.push(row);
 }
 
-// Coordinate helpers
+// Center camera
+cameraX = (WORLD_W * TILE_SIZE * zoom - canvas.width) / 2;
+cameraY = (WORLD_H * TILE_SIZE * zoom - canvas.height) / 2;
+
+// =========================
+// Factions + Diplomacy
+// =========================
+const FACTIONS = ["Red", "Blue", "Green", "Yellow"];
+
+const diplomacy = {};
+FACTIONS.forEach(a => {
+  diplomacy[a] = {};
+  FACTIONS.forEach(b => {
+    diplomacy[a][b] = a === b ? "self" : "peace";
+  });
+});
+
+function updateDiplomacy() {
+  if (Math.random() < 0.002) {
+    const a = FACTIONS[Math.floor(Math.random()*FACTIONS.length)];
+    const b = FACTIONS[Math.floor(Math.random()*FACTIONS.length)];
+    if (a !== b) {
+      diplomacy[a][b] = diplomacy[b][a] =
+        diplomacy[a][b] === "peace" ? "war" : "peace";
+    }
+  }
+}
+
+// =========================
+// Coordinate Helpers
+// =========================
 function worldToScreen(x, y) {
   const size = TILE_SIZE * zoom;
   return {
@@ -83,7 +126,9 @@ function screenToWorld(mx, my) {
   };
 }
 
+// =========================
 // Drawing
+// =========================
 function drawWorld() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -101,11 +146,13 @@ function drawWorld() {
 
       ctx.drawImage(tileSprites[tile.terrain], sx, sy, size, size);
 
+      // City buildings
       if (tile.structure === "house") {
-        ctx.fillStyle = "#8b4513";
-        ctx.fillRect(sx + size * 0.2, sy + size * 0.2, size * 0.6, size * 0.6);
+        ctx.fillStyle = ["#8b4513", "#b5651d", "#d2b48c", "#cccccc"][tile.cityLevel];
+        ctx.fillRect(sx + size * 0.2, sy + size * 0.3, size * 0.6, size * 0.5);
       }
 
+      // Creatures
       tile.creatures.forEach(c => {
         ctx.drawImage(creatureSprites[c.type], sx + size * 0.25, sy + size * 0.25, size * 0.5, size * 0.5);
       });
@@ -113,7 +160,9 @@ function drawWorld() {
   }
 }
 
-// Creature movement
+// =========================
+// Creature Movement
+// =========================
 function updateCreatures() {
   for (let y = 0; y < WORLD_H; y++) {
     for (let x = 0; x < WORLD_W; x++) {
@@ -137,7 +186,9 @@ function updateCreatures() {
   }
 }
 
-// Human AI
+// =========================
+// Human AI (houses + hunting)
+// =========================
 function humanAI() {
   for (let y = 0; y < WORLD_H; y++) {
     for (let x = 0; x < WORLD_W; x++) {
@@ -154,7 +205,6 @@ function humanAI() {
   }
 }
 
-// Hunting
 function huntingAI() {
   for (let y = 0; y < WORLD_H; y++) {
     for (let x = 0; x < WORLD_W; x++) {
@@ -172,13 +222,73 @@ function huntingAI() {
   }
 }
 
+// =========================
+// City Growth
+// =========================
+function updateCities() {
+  for (let y = 0; y < WORLD_H; y++) {
+    for (let x = 0; x < WORLD_W; x++) {
+      const tile = world[y][x];
+
+      if (tile.structure === "house") {
+        let nearbyHumans = 0;
+
+        for (let dy = -2; dy <= 2; dy++) {
+          for (let dx = -2; dx <= 2; dx++) {
+            const nx = x + dx, ny = y + dy;
+            if (nx>=0 && ny>=0 && nx<WORLD_W && ny<WORLD_H) {
+              world[ny][nx].creatures.forEach(c => {
+                if (c.type === "human") nearbyHumans++;
+              });
+            }
+          }
+        }
+
+        if (nearbyHumans > 5 && tile.cityLevel < 3 && Math.random() < 0.01) {
+          tile.cityLevel++;
+        }
+      }
+    }
+  }
+}
+
+// =========================
+// Wars
+// =========================
+function warAI() {
+  for (let y = 0; y < WORLD_H; y++) {
+    for (let x = 0; x < WORLD_W; x++) {
+      const tile = world[y][x];
+      const humans = tile.creatures.filter(c => c.type === "human");
+
+      if (humans.length > 1) {
+        for (let i = 0; i < humans.length; i++) {
+          for (let j = i+1; j < humans.length; j++) {
+            const a = humans[i];
+            const b = humans[j];
+
+            if (a.faction && b.faction && diplomacy[a.faction][b.faction] === "war") {
+              if (Math.random() < 0.1) {
+                const loser = Math.random() < 0.5 ? a : b;
+                tile.creatures = tile.creatures.filter(c => c !== loser);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// =========================
 // Disasters
+// =========================
 function meteor(x, y) {
   for (let r = 0; r < 5; r++) {
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) {
         const nx = x + dx, ny = y + dy;
-        if (nx >= 0 && ny >= 0 && nx < WORLD_W && ny < WORLD_H) {
+        if (nx>=0 && ny>=0 && nx<WORLD_W && ny<WORLD_H) {
           world[ny][nx].terrain = "mountain";
           world[ny][nx].creatures = [];
         }
@@ -239,12 +349,12 @@ function plague() {
   }
 }
 
-// Mouse input
-canvas.addEventListener("mousedown", e => {
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
+// =========================
+// Brush (FIXED)
+// =========================
+let isMouseDown = false;
 
+function applyBrush(mx, my) {
   const { wx, wy } = screenToWorld(mx, my);
   const size = parseInt(brush.value);
 
@@ -259,7 +369,12 @@ canvas.addEventListener("mousedown", e => {
         if (["grass","sand","water","mountain"].includes(currentTool)) {
           tile.terrain = currentTool;
         } else if (["human","animal"].includes(currentTool)) {
-          tile.creatures.push({ type: currentTool });
+          if (currentTool === "human") {
+            const faction = FACTIONS[Math.floor(Math.random()*FACTIONS.length)];
+            tile.creatures.push({ type: "human", faction });
+          } else {
+            tile.creatures.push({ type: "animal", faction: null });
+          }
         } else if (currentTool === "meteor") {
           meteor(nx, ny);
         } else if (currentTool === "fire") {
@@ -274,15 +389,35 @@ canvas.addEventListener("mousedown", e => {
       }
     }
   }
+}
+
+canvas.addEventListener("mousedown", e => {
+  isMouseDown = true;
+  const rect = canvas.getBoundingClientRect();
+  applyBrush(e.clientX - rect.left, e.clientY - rect.top);
 });
 
+canvas.addEventListener("mousemove", e => {
+  if (!isMouseDown) return;
+  const rect = canvas.getBoundingClientRect();
+  applyBrush(e.clientX - rect.left, e.clientY - rect.top);
+});
+
+window.addEventListener("mouseup", () => {
+  isMouseDown = false;
+});
+
+// =========================
 // Zoom
+// =========================
 canvas.addEventListener("wheel", e => {
   e.preventDefault();
   zoom = Math.max(1, Math.min(6, zoom + (e.deltaY < 0 ? 0.2 : -0.2)));
 });
 
-// Camera movement
+// =========================
+// Camera Movement
+// =========================
 const keys = {};
 window.addEventListener("keydown", e => keys[e.key] = true);
 window.addEventListener("keyup", e => keys[e.key] = false);
@@ -295,12 +430,17 @@ function updateCamera() {
   if (keys["d"]) cameraX += speed;
 }
 
-// Main loop
+// =========================
+// Main Loop
+// =========================
 function loop() {
   updateCamera();
   updateCreatures();
   humanAI();
   huntingAI();
+  updateCities();
+  warAI();
+  updateDiplomacy();
   spreadFire();
   drawWorld();
   requestAnimationFrame(loop);
